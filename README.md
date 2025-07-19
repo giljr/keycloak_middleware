@@ -3,20 +3,20 @@
 ✅ *Plug-and-play Keycloak authentication middleware for Rails apps, with configurable protected paths and roles.*
 
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/keycloak_middleware`. To experiment with that code, run `bin/console` for an interactive prompt.
+Welcome to our new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/keycloak_middleware`. To experiment with that code, run `bin/console` for an interactive prompt.
 
 ## 💄Features
 ```
 - OpenID Connect Authorization Code Flow
 - JWT validation using JWKS from Keycloak
 - Role-based access control
-- Configurable protected paths and roles per app
+- Configurable protected paths and roles per app and debug mode on/off
 - Plug & play: no controllers or models required
 ```
 ---
 ## Installation
 
-### Usage - 🚀 Quick Workflow
+### Usage 🚀 Quick Workflow
 ✅ Add gem to your app’s Gemfile:
 To use the gem directly from GitHub (for example during development), add this to your Gemfile:
 ```bash
@@ -30,7 +30,7 @@ bundle install
 ```ruby
 bin/rails generate keycloak_middleware:install
 ```
-✅ Fill in .env or Rails credentials.
+✅ Fill in `.env` or Rails credentials.
 ```ruby
 KEYCLOAK_REALM=<your_realm_name>
 KEYCLOAK_SITE=<keycloak_server_url>           # e.g., http://localhost:8080
@@ -43,8 +43,38 @@ REDIS_PORT=6379
 REDIS_DB_SESSION=0
 
 ```
-✅ Confirm redis is up and running:
+✅ Confirm REDIS is up and running:
+
+We’re on the right track: switching your Rails session store to Redis is the correct way to handle large session payloads (like tokens) and avoid browser cookie size limits.
+
+Here’s the complete checklist and config to use Redis sessions properly in Rails 👇
+
 [HOW TO INSTALL REDIS](https://github.com/giljr/keycloak_middleware/blob/master/REDIS_INSTALLATION.md)
+
+✅ For rails 7+ Make sure you have the redis session store gem:
+
+# Gemfile
+```bash
+gem 'redis-rails'
+bundle install
+```
+
+✅ For Rails 8+ — current known incompatibilities:
+Use a compatible Redis session store:
+```bash
+gem "redis-session-store", "~> 0.11.6"
+```
+(Later versions may not yet support Rails 8 fully.)
+
+✅ Test Redis
+```bash
+redis-cli
+127.0.0.1:6379> ping
+```
+response:
+```bash
+PONG
+```
 
 ✅ Define protected paths and roles in `config/initializers/keycloak_middleware.rb`. 
 
@@ -84,15 +114,6 @@ Rails.application.config.session_store :cache_store,
   expire_after: 90.minutes
 
 ```
-✅ Test Redis
-```bash
-redis-cli
-127.0.0.1:6379> ping
-```
-response:
-```bash
-PONG
-```
 
 ✅ Test if middleware was loaded
 ```bash
@@ -108,9 +129,6 @@ run KeycloakApp::Application.routes
 
 ✅ Done! Your middleware is active.
 
-
-
-bin/rails generate keycloak_middleware:install
 
 ## Development
 
