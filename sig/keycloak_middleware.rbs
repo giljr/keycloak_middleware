@@ -1,4 +1,4 @@
 module KeycloakMiddleware
-  VERSION: String
+  VERSION: 0.0.4
   # See the writing guide of rbs: https://github.com/ruby/rbs#guides
 end
