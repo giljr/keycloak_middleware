@@ -53,7 +53,7 @@ Here’s the complete checklist and config to use Redis sessions properly in Rai
 
 ✅ For rails 7+ Make sure you have the redis session store gem:
 
-# Gemfile
+Gemfile
 ```bash
 gem 'redis-rails'
 bundle install
@@ -81,7 +81,7 @@ PONG
 ✅ Enable debug mode to output OAuth 2.0 details to your terminal.
 ```ruby
 Rails.application.config.middleware.use KeycloakMiddleware::Middleware do |config|
-  # Configure the protected paths and required roles
+  # Configure the protected paths and required roles and debug mode
   config.debug = true
   config.protect "/secured", role: "user"
   config.protect "/admin", role: "admin"
@@ -118,12 +118,10 @@ Rails.application.config.session_store :cache_store,
 ✅ Test if middleware was loaded
 ```bash
 rails middleware
-127.0.0.1:6379> ping
 ```
-response:
+Response:
 ```bash
-...
-use KeycloakMiddleware::Middleware**
+use KeycloakMiddleware::Middleware
 run KeycloakApp::Application.routes
 ```
 
