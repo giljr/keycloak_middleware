@@ -10,7 +10,7 @@ module KeycloakMiddleware
         say_status('info', "Creating #{initializer_path}", :blue)
 
         create_file initializer_path, <<~RUBY
-          Rails.application.config.middleware.use KeycloakMiddleware::Middleware do |config|
+          Rails.application.config.middleware.use KeycloakMiddleware::Middleware do |config|            
             # Enable debug logging to terminal or Rails.logger
             config.debug = true
 
