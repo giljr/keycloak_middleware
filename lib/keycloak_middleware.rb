@@ -93,23 +93,22 @@ module KeycloakMiddleware
       state = request.params['state']
       session = request.session
 
-      return unauthorized('Missing authorization code') unless code
-      return unauthorized('Invalid state') unless state == session.delete(:oauth_state)
-
       debug_puts '----------------------------------------------' if code
       debug_puts "Received authorization code: #{code}" if code
 
+      return unauthorized('Missing authorization code') unless code
+      return unauthorized('Invalid state') unless state == session.delete(:oauth_state)
+
       token_response = exchange_code_for_token(code)
+
+      debug_puts '----------------------------------------------' if code
+      debug_puts "Token response: #{token_response.inspect}" if token_response
+      debug_puts '----------------------------------------------' if code
 
       unless token_response && token_response['access_token'] && token_response['id_token']
         return unauthorized('Token exchange failed')
       end
 
-
-      debug_puts '----------------------------------------------' if code
-      debug_puts "Token response: #{token_response.inspect}" if token_response
-      debug_puts '----------------------------------------------' if code
-      
       decoded_payload = decode_token(token_response['access_token'])
       return unauthorized('Invalid access token') unless decoded_payload
 
@@ -192,11 +191,7 @@ module KeycloakMiddleware
     end
 
     def debug_puts(message)
-      if defined?(Rails)
-        Rails.logger.debug(message) if @config.debug
-      else
-        puts(message) if @config.debug
-      end
+      puts(message) if @config.debug
     end
   end
 end
