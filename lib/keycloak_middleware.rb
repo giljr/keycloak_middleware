@@ -96,12 +96,20 @@ module KeycloakMiddleware
       return unauthorized('Missing authorization code') unless code
       return unauthorized('Invalid state') unless state == session.delete(:oauth_state)
 
+      debug_puts '----------------------------------------------' if code
+      debug_puts "Received authorization code: #{code}" if code
+
       token_response = exchange_code_for_token(code)
 
       unless token_response && token_response['access_token'] && token_response['id_token']
         return unauthorized('Token exchange failed')
       end
 
+
+      debug_puts '----------------------------------------------' if code
+      debug_puts "Token response: #{token_response.inspect}" if token_response
+      debug_puts '----------------------------------------------' if code
+      
       decoded_payload = decode_token(token_response['access_token'])
       return unauthorized('Invalid access token') unless decoded_payload
 
