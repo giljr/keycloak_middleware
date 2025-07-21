@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative "keycloak_middleware/version"
-
 require 'jwt'
 require 'net/http'
 require 'json'
@@ -19,7 +17,9 @@ module KeycloakMiddleware
     end
 
     def call(env)
+      puts '[KeycloakMiddleware] processing request…' if @config.debug
       load_config
+
       request = Rack::Request.new(env)
       session = request.session
       path = request.path_info
@@ -31,14 +31,14 @@ module KeycloakMiddleware
       when '/auth/callback'
         return handle_callback(request)
       when '/logout'
-        return handle_logout(request) unless request.post? || request.delete?
-        return [405, { 'Content-Type' => 'text/plain' }, ['Method Not Allowed']]
+        return handle_logout(request)
       end
 
       required_role = @config.protected_paths[path]
       return @app.call(env) unless required_role
 
       token = extract_token(request)
+
       unless token || session[:roles].present?
         session[:return_to] = request.fullpath
         return [302, { 'Location' => '/login' }, []]
@@ -85,6 +85,9 @@ module KeycloakMiddleware
         scope: 'openid profile email',
         state: state
       )
+
+      debug_puts "[Login] Generated state: #{state}"
+
       [302, { 'Location' => auth_uri.to_s }, []]
     end
 
@@ -93,30 +96,29 @@ module KeycloakMiddleware
       state = request.params['state']
       session = request.session
 
-      debug_puts '----------------------------------------------' if code
-      debug_puts "Received authorization code: #{code}" if code
+      debug_puts '---------------------------------------' if code
+      debug_puts "[Callback] Received authorization code: #{code}" if code
+      debug_puts "[Callback] State in params: #{state}" if state
+      debug_puts "[Callback] State in session: #{session[:oauth_state]}" if session[:oauth_state]
 
       return unauthorized('Missing authorization code') unless code
       return unauthorized('Invalid state') unless state == session.delete(:oauth_state)
 
       token_response = exchange_code_for_token(code)
 
-      debug_puts '----------------------------------------------' if code
-      debug_puts "Token response: #{token_response.inspect}" if token_response
-      debug_puts '----------------------------------------------' if code
+      debug_puts '---------------------------------------' if code
+      debug_puts "[Callback] Token response: #{token_response.inspect}" if token_response
+      debug_puts '---------------------------------------' if code
 
       unless token_response && token_response['access_token'] && token_response['id_token']
         return unauthorized('Token exchange failed')
       end
 
       decoded_payload = decode_token(token_response['access_token'])
-      return unauthorized('Invalid access token') unless decoded_payload
-
       session[:user_id] = decoded_payload['sub']
-      session[:user_name] = decoded_payload['preferred_username'] || decoded_payload['email'] || 'unknown'
       session[:roles]   = decoded_payload.dig('realm_access', 'roles') || []
       session[:access_token] = token_response['access_token']
-      session[:id_token] = token_response['id_token']
+      session[:id_token]     = token_response['id_token']
 
       redirect_path =
         if @config.on_login_success
@@ -126,6 +128,11 @@ module KeycloakMiddleware
         end
 
       [302, { 'Location' => redirect_path }, []]
+    end
+
+    def token_expired?(payload)
+      exp = payload['exp']
+      exp && Time.at(exp) < Time.now
     end
 
     def handle_logout(request)
@@ -175,11 +182,6 @@ module KeycloakMiddleware
         next
       end
       nil
-    end
-
-    def token_expired?(payload)
-      exp = payload['exp']
-      exp && Time.at(exp) < Time.now
     end
 
     def unauthorized(message)
