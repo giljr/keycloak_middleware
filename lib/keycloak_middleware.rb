@@ -83,7 +83,7 @@ module KeycloakMiddleware
         redirect_uri: @redirect_uri,
         response_type: 'code',
         scope: 'openid profile email',
-        state: state
+        state:
       )
 
       debug_puts "[Login] Generated state: #{state}"
@@ -115,10 +115,12 @@ module KeycloakMiddleware
       end
 
       decoded_payload = decode_token(token_response['access_token'])
-      session[:user_id] = decoded_payload['sub']
-      session[:roles]   = decoded_payload.dig('realm_access', 'roles') || []
+      session[:user_name] = decoded_payload['name'] || decoded_payload['preferred_username'] || decoded_payload['sub']
+      session[:roles] = decoded_payload.dig('realm_access', 'roles') || []
       session[:access_token] = token_response['access_token']
       session[:id_token]     = token_response['id_token']
+
+      debug_puts "[Callback] User name: #{session[:user_name]}"
 
       redirect_path =
         if @config.on_login_success
@@ -156,7 +158,7 @@ module KeycloakMiddleware
                                   client_id: @client_id,
                                   client_secret: @client_secret,
                                   grant_type: 'authorization_code',
-                                  code: code,
+                                  code:,
                                   redirect_uri: @redirect_uri
                                 })
       JSON.parse(res.body)
