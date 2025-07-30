@@ -58,11 +58,11 @@ module KeycloakMiddleware
     private
 
     def load_config
-      @realm ||= ENV.fetch('KEYCLOAK_REALM')
-      @auth_server_url ||= ENV.fetch('KEYCLOAK_SITE')
-      @client_id      ||= ENV.fetch('KEYCLOAK_CLIENT_ID')
-      @client_secret  ||= ENV.fetch('KEYCLOAK_CLIENT_SECRET')
-      @redirect_uri   ||= ENV.fetch('KEYCLOAK_REDIRECT_URI')
+      @realm          ||= Rails.application.credentials.dig(:keycloak, :realm)
+      @auth_server_url ||= Rails.application.credentials.dig(:keycloak, :site)
+      @client_id      ||= Rails.application.credentials.dig(:keycloak, :client_id)
+      @client_secret  ||= Rails.application.credentials.dig(:keycloak, :client_secret)
+      @redirect_uri   ||= Rails.application.credentials.dig(:keycloak, :redirect_uri)
       @jwks           ||= fetch_jwks
     end
 
@@ -77,19 +77,23 @@ module KeycloakMiddleware
       state = SecureRandom.hex(16)
       session[:oauth_state] = state
 
-      auth_uri = URI("#{@auth_server_url}/realms/#{@realm}/protocol/openid-connect/auth")
-      auth_uri.query = URI.encode_www_form(
+      params = {
         client_id: @client_id,
         redirect_uri: @redirect_uri,
         response_type: 'code',
         scope: 'openid profile email',
-        state:
-      )
+        state: state
+      }
+
+      base = "#{@auth_server_url}/realms/#{@realm}/protocol/openid-connect/auth"
+      uri = URI.parse(base)
+      uri.query = URI.encode_www_form(params)
 
       debug_puts "[Login] Generated state: #{state}"
 
-      [302, { 'Location' => auth_uri.to_s }, []]
+      [302, { 'Location' => uri.to_s }, []]
     end
+
 
     def handle_callback(request)
       code = request.params['code']
@@ -158,7 +162,7 @@ module KeycloakMiddleware
                                   client_id: @client_id,
                                   client_secret: @client_secret,
                                   grant_type: 'authorization_code',
-                                  code:,
+                                  code: code,
                                   redirect_uri: @redirect_uri
                                 })
       JSON.parse(res.body)
