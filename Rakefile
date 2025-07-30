@@ -13,4 +13,17 @@ namespace :release do
     puts "📝 Commit message:"
     puts message
   end
+
+  task :github do
+    version = KeycloakMiddleware::VERSION
+    message = <<~MSG
+      ## Novidades da versão #{version}
+
+      - Suporte a Rails credentials com `Rails.application.credentials.dig`
+      - Logout seguro com JWT
+      - Refatoração de variáveis de ambiente
+    MSG
+
+    sh %(gh release create v#{version} --title "v#{version}" --notes "#{message}")
+  end
 end
