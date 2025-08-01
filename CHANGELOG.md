@@ -60,7 +60,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
   ```
 
-### [0.1.4] - 2025-07-19
+### [0.1.7] - 2025-07-19
 
 #### Added
 
